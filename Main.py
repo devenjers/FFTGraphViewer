@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QWidget, QVB
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+import numpy
 
 
 #pip install scipy
@@ -29,14 +30,24 @@ class MainWindow(QMainWindow):
 
 
         canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        canvas2 = FigureCanvas(Figure(figsize=(4, 3)))
+        canvas3 = FigureCanvas(Figure(figsize=(4, 3)))
         vbox = QVBoxLayout(self.main_widget)
         vbox.addWidget(canvas)
+        vbox.addWidget(canvas2)
+        vbox.addWidget(canvas3)
 
 
         self.addToolBar(NavigationToolbar(canvas, self))
 
         self.ax = canvas.figure.subplots()
-        self.ax.plot([0, 1, 2], [1, 5, 3], '-')
+        #self.ax.plot([0, 1, 2], [1, 5, 3], '-')
+
+        self.ax2 = canvas2.figure.subplots()
+        #self.ax2.plot([0, 1, 2], [1, 5, 3], '-')
+
+        self.ax3 = canvas3.figure.subplots()
+        #self.ax3.plot([0, 1, 2], [1, 5, 3], '-')
 
 
         self.setGeometry(300, 100, 600, 400)
@@ -49,19 +60,36 @@ class MainWindow(QMainWindow):
     def onFileDialog(self):
         self.fileName = QFileDialog.getOpenFileName(self, "파일 열기", './')
         self.ReadWaveFile(self.GetFilePath())
+        self.DrawPCMGraph()
+        self.FFTGraph()
+        self.WavSpectrogram()
         
 
     def GetFilePath(self):
         return self.fileName[0]
 
     def ReadWaveFile(self, filePath):
-        fs, data = wavfile.read(filePath)
-        a = data
-        b=[(ele/2**16.)*2-1 for ele in a]
-        c = fft(b)
-        d = int(len(c)/2)
-        print(abs(c[:(d-1)]))
-        self.ax.plot(abs(c[:(d-1)]),'r')
+        self.sampleRate, self.pcmData = wavfile.read(filePath)
+
+    def DrawPCMGraph(self):
+        dataLen = int(len(self.pcmData.T[0]))
+        self.ax2.plot(self.pcmData.T[0][:dataLen], 'r')
+        
+
+    def FFTGraph(self):
+        n = len(self.pcmData.T[0])
+        T = 1 / self.sampleRate
+        yf = fft(self.pcmData.T[0])
+        xf = numpy.linspace(0, int(1.0/(2.0*T)), int(n/2))
+        self.ax.plot(xf, 2.0/n * numpy.abs(yf[:n//2]),'b')
+
+    def WavSpectrogram(self):
+        self.ax3.specgram(self.pcmData.T[0], Fs=self.sampleRate)
+
+
+    
+    
+
 
 
 
